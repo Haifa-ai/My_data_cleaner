@@ -126,5 +126,5 @@ if user_question:
             st.markdown("### 🤖 إجابة الخبير:")
             st.info(response["output_text"])
     else:
-        st.warning("يرجى تحليل مصدر (PDF أو YouTube) قبل طرح الأسئلة.")
+        st.warning("يرجى تحليل مصدر (PDF أو YouTube) قبل طرح الأسئلة.") 
                     
