@@ -1,4 +1,7 @@
 streamlit
-pandas
-plotly
-openpyxl
+pypdf2
+youtube_transcript_api
+langchain
+langchain-google-genai
+faiss-cpu
+
