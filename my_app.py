@@ -4,19 +4,50 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import google.generativeai as genai
 import os
 
-# --- 1. إعدادات الصفحة والفخامة ---
-st.set_page_config(page_title="AI Knowledge Hub", page_icon="🧠", layout="wide")
+# --- 1. إعدادات الصفحة والتصميم الجمالي ---
+st.set_page_config(page_title="AI Knowledge Hub", page_icon="🧠", layout="centered")
 
-# --- 2. الربط الآمن بمفتاح Google API ---
-# سيقوم الكود بالبحث عن المفتاح في Secrets الخاصة بـ Streamlit
+# إضافة لمسات جمالية باستخدام CSS (تكبير الخط وتحسين الألوان)
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f5f7f9;
+    }
+    .stButton>button {
+        width: 100%;
+        border-radius: 10px;
+        height: 3em;
+        background-color: #4CAF50;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+    }
+    h1 {
+        color: #1E3A8A;
+        font-family: 'Arial';
+        font-size: 40px !important;
+        text-align: center;
+    }
+    .stTextInput>div>div>input {
+        font-size: 20px !important;
+    }
+    .stRadio>div {
+        flex-direction: row;
+        justify-content: center;
+        gap: 20px;
+        font-size: 22px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- 2. إعداد المفتاح بأمان ---
 if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 else:
-    st.error("❌ خطأ: لم يتم العثور على مفتاح GOOGLE_API_KEY في إعدادات Secrets.")
+    st.warning("⚠️ يرجى إضافة GOOGLE_API_KEY في إعدادات Secrets.")
 
-# --- 3. وظائف استخراج النصوص (المهام الأساسية) ---
+# --- 3. وظائف المعالجة ---
 def get_pdf_text(pdf_docs):
-    """استخراج النص من ملفات PDF المرفوعة"""
     text = ""
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
@@ -25,82 +56,82 @@ def get_pdf_text(pdf_docs):
     return text
 
 def get_youtube_text(video_url):
-    """استخراج النص (الترجمة) من فيديوهات اليوتيوب"""
     try:
-        # استخراج معرف الفيديو من الرابط
         if "v=" in video_url:
             video_id = video_url.split("v=")[1].split("&")[0]
         else:
             video_id = video_url.split("/")[-1]
-            
         transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['ar', 'en'])
         return " ".join([i['text'] for i in transcript])
-    except Exception as e:
-        st.error(f"⚠️ تعذر جلب نص الفيديو. تأكد من وجود ترجمة مصاحبة (Subtitles).")
+    except:
         return None
 
-# --- 4. واجهة المستخدم (UI Design) ---
-st.markdown("<h1 style='text-align: center;'>🧠 منصة المعرفة التفاعلية</h1>", unsafe_allow_html=True)
+# --- 4. واجهة المستخدم الرئيسية (بدون Sidebar) ---
+st.markdown("<h1>🧠 خبير المعرفة الذكي</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 20px;'>ارفع ملفاتك أو ضع رابط فيديو وابدأ الدردشة مع المحتوى</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# القائمة الجانبية للتحكم
-st.sidebar.title("⚙️ الإعدادات")
-source_type = st.sidebar.radio("اختر مصدر البيانات:", ("ملف PDF", "رابط YouTube"))
+# تبديل المصدر في الصفحة الرئيسية
+source_type = st.radio("اختر مصدر البيانات:", ("📄 ملف PDF", "🎥 رابط YouTube"))
 
-# تخزين البيانات في جلسة العمل (Session State) لضمان عدم ضياعها عند التفاعل
+# مساحة لحفظ النص في الجلسة
 if 'final_context' not in st.session_state:
     st.session_state['final_context'] = ""
 
-if source_type == "ملف PDF":
-    uploaded_files = st.sidebar.file_uploader("ارفع ملفات PDF", accept_multiple_files=True, type=['pdf'])
-    if st.sidebar.button("تحليل المستندات"):
-        if uploaded_files:
-            with st.spinner("جاري قراءة الملفات..."):
-                st.session_state['final_context'] = get_pdf_text(uploaded_files)
-                st.sidebar.success("✅ تم تحليل المستندات بنجاح!")
-        else:
-            st.sidebar.warning("يرجى رفع ملف أولاً.")
+col1, col2, col3 = st.columns([1, 2, 1])
 
-else:
-    yt_link = st.sidebar.text_input("ضع رابط YouTube هنا:")
-    if st.sidebar.button("تحليل الفيديو"):
-        if yt_link:
-            with st.spinner("جاري استخراج نص الفيديو..."):
-                st.session_state['final_context'] = get_youtube_text(yt_link)
-                if st.session_state['final_context']:
-                    st.sidebar.success("✅ تم تحليل الفيديو بنجاح!")
-        else:
-            st.sidebar.warning("يرجى وضع الرابط أولاً.")
+with col2:
+    if source_type == "📄 ملف PDF":
+        uploaded_files = st.file_uploader("ارفع ملفات الـ PDF هنا", accept_multiple_files=True, type=['pdf'])
+        if st.button("تحليل المستندات"):
+            if uploaded_files:
+                with st.spinner("جاري القراءة..."):
+                    st.session_state['final_context'] = get_pdf_text(uploaded_files)
+                    st.success("✅ تم التحليل بنجاح!")
+            else:
+                st.error("يرجى اختيار ملف!")
 
-# --- 5. منطقة الدردشة والذكاء الاصطناعي ---
-user_query = st.text_input("💬 اسأل الخبير عن أي شيء في المحتوى المرفوع:")
+    else:
+        yt_link = st.text_input("ضع رابط YouTube هنا:", placeholder="https://www.youtube.com/watch?v=...")
+        if st.button("تحليل الفيديو"):
+            if yt_link:
+                with st.spinner("جاري استخراج النص..."):
+                    st.session_state['final_context'] = get_youtube_text(yt_link)
+                    if st.session_state['final_context']:
+                        st.success("✅ تم تحليل الفيديو!")
+                    else:
+                        st.error("تعذر جلب النص. تأكد من وجود ترجمة للفيديو.")
+
+st.markdown("---")
+
+# --- 5. منطقة الدردشة ---
+st.markdown("<h3 style='text-align: center;'>💬 اسأل أي سؤال حول المحتوى:</h3>", unsafe_allow_html=True)
+user_query = st.text_input("", placeholder="اكتب سؤالك هنا...")
 
 if user_query:
     if st.session_state['final_context']:
         try:
-            with st.spinner("جاري توليد الإجابة..."):
-                # استخدام الموديل الأكثر توافقاً وتوفراً
+            with st.spinner("جاري التفكير..."):
+                # استخدام الموديل الأكثر استقراراً لتجنب خطأ 404
                 model = genai.GenerativeModel('gemini-1.5-flash')
                 
-                # بناء الـ Prompt بأسلوب هندسي دقيق
-                prompt = f"""
-                أنت مساعد ذكي خبير. استخدم النص التالي فقط للإجابة على السؤال بدقة.
-                إذا لم تكن الإجابة موجودة في النص، قل 'هذه المعلومة غير متوفرة في المصدر'.
+                full_prompt = f"""
+                أنت مساعد ذكي. بناءً على النص التالي فقط، أجب على السؤال بدقة واحترافية.
+                إذا لم تكن الإجابة موجودة، قل 'المعلومة غير متوفرة في المصدر'.
                 
-                النص المصدر:
-                {st.session_state['final_context'][:15000]} 
+                نص المصدر:
+                {st.session_state['final_context'][:15000]}
                 
                 السؤال:
                 {user_query}
-                
-                الإجابة:
                 """
                 
-                response = model.generate_content(prompt)
+                response = model.generate_content(full_prompt)
+                st.markdown("---")
                 st.markdown("### 🤖 الإجابة:")
                 st.info(response.text)
         except Exception as e:
-            st.error(f"❌ حدث خطأ أثناء الاتصال بالذكاء الاصطناعي: {e}")
+            st.error(f"حدث خطأ في الاتصال: {e}")
     else:
-        st.warning("⚠️ يرجى تحليل مصدر بيانات (PDF أو YouTube) قبل السؤال.")
-                
+        st.warning("⚠️ حلل مصدراً أولاً (PDF أو YouTube) لكي أتمكن من إجابتك.")
+        
